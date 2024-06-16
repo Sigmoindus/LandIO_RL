@@ -151,18 +151,20 @@ class Player:
         self.position = position
         self.direction = Direction.STAY
 
-    def change_direction(self):
-        keys = pygame.key.get_pressed()
-        if keys[pygame.K_LEFT]:
+    def change_direction(self, key_type):
+
+        # keys = pygame.key.get_pressed()
+        # TODO: only one key check per move
+        if key_type == pygame.K_LEFT:
             if self.direction != Direction.RIGHT:
                 self.direction = Direction.LEFT
-        elif keys[pygame.K_RIGHT]:
+        elif key_type == pygame.K_RIGHT:
             if self.direction != Direction.LEFT:
                 self.direction = Direction.RIGHT
-        elif keys[pygame.K_UP]:
+        elif key_type == pygame.K_UP:
             if self.direction != Direction.DOWN:
                 self.direction = Direction.UP
-        elif keys[pygame.K_DOWN]:
+        elif key_type == pygame.K_DOWN:
             if self.direction != Direction.UP:
                 self.direction = Direction.DOWN
 
@@ -199,8 +201,8 @@ class Game:
 
     def init_territory(self, player):
         start_x, start_y = player.position
-        for i in range(start_x, start_x + 3):
-            for j in range(start_y, start_y + 3):
+        for i in range(start_x - 1, start_x + 2):
+            for j in range(start_y - 1, start_y + 2):
                 if i < self.size + 2 and j < self.size + 2:
                     self.land[i, j] = player.color.get_territory().value
                     player.territory.append((i, j))
@@ -241,6 +243,7 @@ class Game:
                         self.land[new_position] = player.color.get_player().value
             else:
                 player.direction = Direction.STAY
+                #TODO: resolve border stay problem
                 self.land[current_position] = player.color.get_player().value
 
     def respawn_player(self, player):
@@ -302,8 +305,9 @@ def main():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
+            elif event.type == pygame.KEYDOWN:
+                player1.change_direction(event.key)
 
-        player1.change_direction()
         game.update()
 
         screen.fill((0, 0, 0))
