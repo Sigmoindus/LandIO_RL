@@ -38,12 +38,12 @@ class Game:
             for j in range(start_y - 1, start_y + 2):
                 if i < self.size + 2 and j < self.size + 2 and self.land[i, j] != -1:
                     self.land[i, j] = player.color.get_territory().value
-                    player.territory.append((i, j))
 
     def add_player(self, player):
         self.players.append(player)
         player_colors = ColorsEnum.get_player_colors()
-        available_colors = [color for color in player_colors if color not in [p.color for p in self.players if p.color]]
+        available_colors = [color for color in player_colors if
+                            color not in [p.color.color for p in self.players if p.color]]
         if available_colors:
             player.color = Colors(available_colors[0])
 
@@ -87,18 +87,16 @@ class Game:
 
     def fill_enclosed_areas(self, player, matrix):
         value = player.color.get_territory().value
-        # Using a copied matrix for flood fill checks to avoid modifying the original during checks
+
         temp_matrix = np.copy(matrix)
+
         for i in range(1, len(matrix) - 1):
             for j in range(1, len(matrix[0]) - 1):
                 if temp_matrix[i][j] == 0 and self.is_enclosed_area(temp_matrix, i, j, value):
                     self.flood_fill(matrix, i, j, 0, value)
-                    if (i, j) not in player.territory:
-                        player.territory.append((i, j))
+
 
     def update(self):
-
-        leaderboard = []
         for player in self.players:
             current_position = tuple(player.position)
 
@@ -107,11 +105,15 @@ class Game:
                 previous_value = self.land[previous_position]
 
                 if not self.__is_territory(current_position, player):
-                    self.land[previous_position] = player.color.get_pre_territory().value
-                    player.pre_territory.append(previous_position)
+                    if player.now_color == player.color.color.value:
+                        self.land[previous_position] = player.now_color
+                        player.now_color = 0
+                    else:
+                        self.land[previous_position] = player.color.get_pre_territory().value
+                else:
+                    player.now_color = player.color.color.value
 
                 player.move()
-
                 new_position = tuple(player.position)
                 if self.__is_border(player):
                     player.direction = Direction.STAY
@@ -130,7 +132,6 @@ class Game:
                 # TODO: resolve border stay problem
                 self.land[current_position] = player.color.get_player().value
 
-            leaderboard.append(len(player.territory) / self.size ** 2 * 100)
 
     def respawn_player(self, player):
         self.clear_territory(player)
@@ -138,19 +139,13 @@ class Game:
         self.init_territory(player)
 
     def clear_territory(self, player):
-        for position in player.territory:
-            self.land[position] = 0
-        player.territory.clear()
-        for position in player.pre_territory:
-            self.land[position] = 0
-        player.pre_territory.clear()
+        player_color = player.color.color.value // 10
+        self.land[(self.land // 10) == player_color] = 0
 
     def convert_pre_territory_to_territory(self, player):
-        for position in player.pre_territory:
-            self.land[position] = player.color.get_territory().value
-            if position not in player.territory:
-                player.territory.append(position)
-        player.pre_territory.clear()
+        mask = self.land == player.color.get_pre_territory().value
+        self.land[mask] = player.color.get_territory().value
+
 
     def __is_border(self, player):
         return self.land[tuple(player.position)] == -1
@@ -170,10 +165,7 @@ class Game:
     def update_leaderboard(self):
         self.leaderboard = []
         for player in self.players:
-            if len(player.territory) > 0:
-                territory_percentage = len(player.territory) / self.size ** 2 * 100
-            else:
-                territory_percentage = 0.0
+            territory_percentage = np.sum(self.land == player.color.get_territory().value) / self.size ** 2 * 100
             self.leaderboard.append((player.name, territory_percentage))
 
         self.leaderboard.sort(key=lambda x: x[1], reverse=True)

@@ -10,13 +10,29 @@ class PlayerType(Enum):
 
 class Player:
     def __init__(self, name='Sigmoindus', mode=PlayerType.RL):
-        self.color = None
+        self._color = None
+        self._now_color = None
         self.position = None
         self.direction = None
         self.name = name
         self.mode = mode
-        self.pre_territory = []
-        self.territory = []
+
+    @property
+    def color(self):
+        return self._color
+
+    @color.setter
+    def color(self, color):
+        self._color = color
+        self._now_color = color.color.value
+
+    @property
+    def now_color(self):
+        return self._now_color
+
+    @now_color.setter
+    def now_color(self, new_color):
+        self._now_color = new_color
 
     def respawn(self, position):
         self.position = position
