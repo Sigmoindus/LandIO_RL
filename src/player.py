@@ -24,7 +24,7 @@ class Player:
     @color.setter
     def color(self, color):
         self._color = color
-        self._now_color = color.color.value
+        self._now_color = color.get_territory().value
 
     @property
     def now_color(self):

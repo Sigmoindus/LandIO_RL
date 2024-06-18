@@ -95,8 +95,7 @@ class Game:
                 if temp_matrix[i][j] == 0 and self.is_enclosed_area(temp_matrix, i, j, value):
                     self.flood_fill(matrix, i, j, 0, value)
 
-
-    def update(self):
+so,    def update(self):
         for player in self.players:
             current_position = tuple(player.position)
 
@@ -105,13 +104,12 @@ class Game:
                 previous_value = self.land[previous_position]
 
                 if not self.__is_territory(current_position, player):
-                    if player.now_color == player.color.color.value:
+
+                    if player.now_color == player.color.get_territory().value:
                         self.land[previous_position] = player.now_color
                         player.now_color = 0
                     else:
                         self.land[previous_position] = player.color.get_pre_territory().value
-                else:
-                    player.now_color = player.color.color.value
 
                 player.move()
                 new_position = tuple(player.position)
@@ -122,16 +120,17 @@ class Game:
                 else:
                     if self.__is_pre_territory(new_position, player):
                         self.respawn_player(player)
-                    elif self.__is_territory(new_position, player) and self.__has_pre_territory(player):
-                        self.convert_pre_territory_to_territory(player)
-                        self.fill_enclosed_areas(player, self.land)
-                    else:
-                        self.land[new_position] = player.color.get_player().value
+                        continue
+                    elif self.__is_territory(new_position, player):
+                        player.now_color = player.color.get_territory().value
+                        if self.__has_pre_territory(player):
+                            self.convert_pre_territory_to_territory(player)
+                            self.fill_enclosed_areas(player, self.land)
+                    self.land[new_position] = player.color.get_player().value
             else:
                 player.direction = Direction.STAY
                 # TODO: resolve border stay problem
                 self.land[current_position] = player.color.get_player().value
-
 
     def respawn_player(self, player):
         self.clear_territory(player)
@@ -145,7 +144,6 @@ class Game:
     def convert_pre_territory_to_territory(self, player):
         mask = self.land == player.color.get_pre_territory().value
         self.land[mask] = player.color.get_territory().value
-
 
     def __is_border(self, player):
         return self.land[tuple(player.position)] == -1
