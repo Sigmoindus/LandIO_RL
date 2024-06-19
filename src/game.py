@@ -95,7 +95,7 @@ class Game:
                 if temp_matrix[i][j] == 0 and self.is_enclosed_area(temp_matrix, i, j, value):
                     self.flood_fill(matrix, i, j, 0, value)
 
-so,    def update(self):
+    def update(self):
         for player in self.players:
             current_position = tuple(player.position)
 
