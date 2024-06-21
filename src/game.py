@@ -47,55 +47,40 @@ class Game:
         if available_colors:
             player.color = Colors(available_colors[0])
 
-    def flood_fill(self, matrix, x, y, target, replacement):
-        # Using a stack instead of recursion to avoid recursion depth issues
-        stack = [(x, y)]
-        while stack:
-            x, y = stack.pop()
-            if x < 0 or x >= len(matrix) or y < 0 or y >= len(matrix[0]):
-                continue
-            if matrix[x][y] != target:
-                continue
-            matrix[x][y] = replacement
-            stack.extend([(x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)])
-
-    def is_enclosed_area(self, matrix, x, y, value):
-        if matrix[x][y] != 0:
+    def fill_region(self, array, x, y, fill_value):
+        # Base cases to prevent the recursion from processing out of bounds or revisiting cells.
+        if x < 0 or x >= array.shape[0] or y < 0 or y >= array.shape[1]:
             return False
-        # Check if the zero area touches the boundary
-        touched_boundary = [False]
+        if array[x][y] == fill_value:
+            return True  # boundary of the closed shape
 
-        def dfs(x, y):
-            if x <= 0 or x >= len(matrix) - 1 or y <= 0 or y >= len(matrix[0]) - 1:
-                touched_boundary[0] = True
-                return
-            if matrix[x][y] != 0:
-                return
-            matrix[x][y] = -2  # Temporarily marking the cell to avoid revisiting
-            dfs(x + 1, y)
-            dfs(x - 1, y)
-            dfs(x, y + 1)
-            dfs(x, y - 1)
+        array[x][y] = fill_value  # Fill the cell with the target value
 
-        dfs(x, y)
-        # Restore the matrix
-        for i in range(len(matrix)):
-            for j in range(len(matrix[0])):
-                if matrix[i][j] == -2:
-                    matrix[i][j] = 0
-        return not touched_boundary[0]
+        # Recursive calls in four directions
+        top = self.fill_region(array, x - 1, y, fill_value)
+        bottom = self.fill_region(array, x + 1, y, fill_value)
+        left = self.fill_region(array, x, y - 1, fill_value)
+        right = self.fill_region(array, x, y + 1, fill_value)
 
-    def fill_enclosed_areas(self, player, matrix):
-        value = player.color.get_territory().value
+        return top and bottom and left and right
 
-        temp_matrix = np.copy(matrix)
-
-        for i in range(1, len(matrix) - 1):
-            for j in range(1, len(matrix[0]) - 1):
-                if temp_matrix[i][j] == 0 and self.is_enclosed_area(temp_matrix, i, j, value):
-                    self.flood_fill(matrix, i, j, 0, value)
+    def find_and_fill_closed_shapes(self, player):
+        array = self.land
+        fill_value = player.color.get_territory().value
+        # Scan the array to find enclosed regions and fill them.
+        for i in range(1, array.shape[0] - 1):
+            for j in range(1, array.shape[1] - 1):
+                if array[i][j] != fill_value and array[i][j] != -1:  # start from a non-boundary cell
+                    # Try to fill the region and check if it's actually enclosed
+                    original_value = array[i][j]
+                    array_copy = np.copy(array)
+                    if self.fill_region(array_copy, i, j, fill_value):
+                        array[i][j] = fill_value
+                    else:
+                        array[i][j] = original_value  # Restore the original value if not enclosed
 
     def update(self):
+        print(self.land)
         for player in self.players:
             current_position = tuple(player.position)
 
@@ -125,7 +110,8 @@ class Game:
                         player.now_color = player.color.get_territory().value
                         if self.__has_pre_territory(player):
                             self.convert_pre_territory_to_territory(player)
-                            self.fill_enclosed_areas(player, self.land)
+                            self.find_and_fill_closed_shapes(player)
+                            # self.fill_enclosed_areas(player, self.land)
                     self.land[new_position] = player.color.get_player().value
             else:
                 player.direction = Direction.STAY
